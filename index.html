@@ -1,0 +1,183 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>UNO Counter</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/vuex"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <style>
+        .flex-grow {
+            flex: 1 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="vue" class="h-100">
+        <div class="container-fluid h-100 d-flex align-items-center justify-content-center flex-column">
+            <router-view></router-view>
+        </div>
+    </div>
+</body>
+<script type="text/x-template" id="initTpl">
+    <div>
+        Need to win: <input v-model="needPointsToWin"></input><br>
+        Player Name: <input v-model="playerName" @keyup.enter="addPlayer(playerName)"></input><br>
+        Registered players:<br>
+        <div v-for="player in players">{{player.name}}</div>
+        <router-link to="/status" v-if="check">Start game</router-link>
+    </div>
+</script>
+<script type="text/x-template" id="statusTpl">
+    <div>
+        <table>
+            <tr>
+                <th>Player Name</th>
+                <th>Total</th>
+                <th>Rounds</th>
+            </tr>
+            <tr v-for="player in players">
+                <td>{{player.name}}</td>
+                <td>{{score[player.id].score}}</td>
+                <td v-for="round in player.rounds">+{{round}}</td>
+            </tr>
+        </table>
+    </div>
+</script>
+<script type="text/x-template" id="addTpl">
+    
+</script>
+<script>
+    Vue.use(Vuex);
+    const store = new Vuex.Store({
+        state: {
+            players: [],
+            needPointsToWin: 0
+        },
+        mutations: {
+            addPointsTo(state, payload) {
+                let playerId = payload.playerId;
+                let points = payload.points;
+                for (i in state.players) {
+                    if (state.players[i].id == playerId) {
+                        state.players[i].push(points)
+                    } else {
+                        state.players[i].push(0)
+                    }
+                }
+            },
+            addPlayer(state, payload) {
+                let name = payload.name;
+                let id = state.players.push({
+                    name, rounds: []
+                }) - 1;
+                state.players[id].id = id;
+            },
+            setPointsToWin(state, payload) {
+                state.needPointsToWin = payload;
+            }
+        },
+        getters: {
+            isGameOver(state, getters) {
+                let score = getters.score;
+                let players = state.players;
+                for (i in players) {
+                    if (score.find(el => { return el.id == players[i].id; }).score >= state.needPointsToWin) {
+                        return i;
+                    }
+                }
+            },
+            score(state) {
+                let result = [];
+                let players = state.players;
+                for (i in players) {
+                    let player = players[i];
+                    let score = 0;
+                    for (j in player.rounds) {
+                        score += player.rounds[j];
+                    }
+                    result.push({
+                        playerId: player.id,
+                        score
+                    })
+                }
+                return result;
+            }
+        }
+    });
+    const router = new VueRouter({
+        routes: [
+            { 
+                path: '/init',
+                name: 'init',
+                component: {
+                    store,
+                    template: '#initTpl',
+                    props: ['needPointsToWin', 'playerName'],
+                    computed: {
+                        needPointsToWin: {
+                            get() {
+                                return this.$store.state.needPointsToWin;
+                            },
+                            set(val) {
+                                this.$store.commit('setPointsToWin', +val)
+                            }
+                        },
+                        players() {
+                            return this.$store.state.players;
+                        },
+                        check() {
+                            return this.needPointsToWin > 0 && this.players.length > 1;
+                        }
+                    },
+                    methods: {
+                        addPlayer(name) {
+                            this.$store.commit('addPlayer', { name });
+                            this.playerName = '';
+                        }
+                    },
+                    beforeRouteLeave(to, from, next) {
+                        next(this.check);
+                    }
+                }
+            }, { 
+                path: '/status',
+                name: 'status',
+                component: {
+                    store,
+                    template: '#statusTpl',
+                    computed: {
+                        players() {
+                            return this.$store.state.players;
+                        },
+                        score() {
+                            return this.$store.getters.score;
+                        }
+                    }
+                }
+            }, { 
+                path: '/add',
+                name: 'add',
+                component: {
+                    store,
+                    template: '#addTpl'
+                }
+            }
+        ]
+    });
+    let vue = new Vue({
+        router,
+        el: '#vue',
+        data: {},
+        computed: {},
+        mounted() {
+            this.$router.push('init');
+        }
+    });
+</script>
+</html>
