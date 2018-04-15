@@ -146,12 +146,50 @@
                         </td>
                     </tr>
                 </table>
-                <div v-if="isGameOver" class="row">
+                <div class="row">
                     <div class="col">
-                        <button class="btn btn-primary w-100" @click="rematch()">Rematch</button>
+                        <button class="btn btn-primary w-100" @click="rematch(isGameOver)">Rematch</button>
                     </div>
                     <div class="col">
                         <button class="btn btn-secondary w-100" @click="newGame()">New game</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="rematchModal" tabindex="-1" role="dialog" aria-labelledby="rematchModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h5 class="modal-title" id="rematchModalTitle">Confirmation</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        It will erase score for all players. Continue?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <button type="button" class="btn btn-primary" @click="rematch(true)">Yes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="newGameModal" tabindex="-1" role="dialog" aria-labelledby="newGameTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h5 class="modal-title" id="newGameTitle">Confirmation</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        It will erase all data. Continue?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <button type="button" class="btn btn-primary" @click="newGame(true)">Yes</button>
                     </div>
                 </div>
             </div>
@@ -216,10 +254,18 @@
             </div>
             <div class="row mt-3">
                 <div class="col">
-                    <button class="btn btn-secondary" @click="onCancel()">Cancel</button>
-                    <button v-if="summ > 0" class="btn btn-secondary" @click="undo()">Undo</button>
-                    <button v-if="summ > 0" class="btn btn-secondary" @click="stack = []">Reset all</button>
-                    <button v-if="summ > 0" class="btn btn-primary" @click="onSubmit()" >Add</button>
+                    <button class="btn btn-secondary w-100" @click="undo()" :disabled="summ == 0">Undo</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-secondary w-100" @click="stack = []" :disabled="summ == 0">Reset all</button>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" @click="onCancel()">Cancel</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary w-100" @click="onSubmit()" :disabled="summ == 0">Add</button>
                 </div>
             </div>
         </div>
@@ -322,7 +368,16 @@
         routes: [
             {
                 path: '/',
-                redirect: '/init'
+                component: {
+                    store,
+                    mounted() {
+                        if (this.$store.state.players.length > 0) {
+                            router.replace('/status');
+                        } else {
+                            router.replace('/init');
+                        }
+                    }
+                }
             },
             { 
                 path: '/init',
@@ -368,6 +423,11 @@
                 component: {
                     store,
                     template: '#statusTpl',
+                    mounted() {
+                        if (this.$store.state.players.length == 0) {
+                            router.replace('/init');
+                        } 
+                    },
                     methods: {
                         winnerClass(playerId) {
                             return this.isGameOver == playerId ? 'table-success' : '';
@@ -378,12 +438,24 @@
                         upToWin(playerId) {
                             return this.$store.state.needPointsToWin - this.$store.getters.score[playerId].score;
                         },
-                        rematch() {
-                            this.$store.commit('rematch');
+                        rematch(confirmed) {
+                            if (!confirmed) {
+                                $('#rematchModal').modal();
+                                return;
+                            } else {
+                                $('#rematchModal').modal('hide');
+                                this.$store.commit('rematch');
+                            }
                         },
-                        newGame() {
-                            this.$store.commit('newGame');
-                            this.$router.replace('/init');
+                        newGame(confirmed) {
+                            if (!confirmed) {
+                                $('#newGameModal').modal();
+                                return;
+                            } else {
+                                $('#newGameModal').modal('hide');
+                                this.$store.commit('newGame');
+                                this.$router.replace('/init');
+                            }
                         }
                     },
                     computed: {
@@ -401,7 +473,10 @@
                         }
                     }
                 }
-            }, { 
+            }, {
+                path: '/add',
+                redirect: '/init'
+            }, {
                 path: '/add/:id',
                 name: 'add',
                 props: true,
@@ -413,6 +488,11 @@
                     },
                     props: ['id'],
                     store,
+                    mounted() {
+                        if (this.$store.state.players.length == 0) {
+                            router.replace('/init');
+                        } 
+                    },
                     computed: {
                         playerName() {
                             return this.$store.state.players[this.id].name;
