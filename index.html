@@ -11,12 +11,69 @@
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <script src="https://unpkg.com/vuex"></script>
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
     <style>
         .flex-grow {
             flex: 1 0 auto;
         }
-        tr.winner {
-            background-color: #ff00ff;
+        @media screen and (min-width: 992px) {
+            .card.init {
+                width: 30rem;
+            }
+        }
+        @media screen and (max-width: 992px) {
+            .card.init {
+                width: 100%;
+            }
+        }
+        .swatch-blue {
+            color: #fff;
+            background-color: #007bff;
+        }
+
+        .swatch-indigo {
+            color: #fff;
+            background-color: #6610f2;
+        }
+
+        .swatch-purple {
+            color: #fff;
+            background-color: #6f42c1;
+        }
+
+        .swatch-pink {
+            color: #fff;
+            background-color: #e83e8c;
+        }
+
+        .swatch-red {
+            color: #fff;
+            background-color: #dc3545;
+        }
+
+        .swatch-orange {
+            color: #212529;
+            background-color: #fd7e14;
+        }
+
+        .swatch-yellow {
+            color: #212529;
+            background-color: #ffc107;
+        }
+
+        .swatch-green {
+            color: #fff;
+            background-color: #28a745;
+        }
+
+        .swatch-teal {
+            color: #fff;
+            background-color: #20c997;
+        }
+
+        .swatch-cyan {
+            color: #fff;
+            background-color: #17a2b8;
         }
     </style>
 </head>
@@ -28,64 +85,171 @@
     </div>
 </body>
 <script type="text/x-template" id="initTpl">
-    <div>
-        Need to win: <input v-model="needPointsToWin"></input><br>
-        Player Name: <input v-model="playerName" @keyup.enter="addPlayer(playerName)"></input><br>
-        Registered players:<br>
-        <div v-for="player in players">{{player.name}}</div>
-        <router-link to="/status" v-if="check">Start game</router-link>
+    <div class="card init">
+        <div class="card-body">
+            <h5 class="card-title">Uno Score Counter</h5>
+            <h6 class="card-subtitle">Fill the fields to start the game</h6>
+            <div class="mt-3">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="needPointsToWinAddon">Points to win</span>
+                    </div>
+                    <input v-model="needPointsToWin" type="number" step=50 class="form-control" aria-label="needPointsToWin" aria-describedby="needPointsToWinAddon">
+                </div>
+                <div class="input-group" v-if="players.length < 10">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="playerNameAddon">Player Name</span>
+                    </div>
+                    <input v-model="playerName" type="text" class="form-control" aria-label="playerName" aria-describedby="playerNameAddon" @keyup.enter="addPlayer(playerName)">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" @click="addPlayer(playerName)">Add</button>
+                    </div>
+                </div>
+                <div v-else>
+                    You have reach the maximum number of players
+                </div>
+            </div>
+            <div v-if="players.length > 0" class="mt-3">
+                <h6>Registered players:</h6>
+                <div class="d-flex align-content-start flex-wrap">
+                    <h5 v-for="player in players" class="mr-1"><span :class="getPlayerBadgeClass(player.id)">{{player.name}}</span></h5>
+                </div>
+            </div>
+            <router-link class="btn btn-primary w-100 mt-3" to="/status" replace v-if="check">Start the game</router-link>
+        </div>
     </div>
 </script>
 <script type="text/x-template" id="statusTpl">
-    <div>
-        <table>
-            <tr>
-                <th>Player Name</th>
-                <th>Total</th>
-                <th>Add Points</th>
-                <th>Rounds</th>
-            </tr>
-            <tr v-for="player in players" :class="winnerClass(player.id)">
-                <td>{{player.name}}</td>
-                <td>{{score[player.id].score}}</td>
-                <td><router-link :to="{ path: '/add/'+player.id }" v-if="!isGameOver" >Add points</router-link></td>
-                <td v-for="round in player.rounds">+{{round}}</td>
-            </tr>
-        </table>
+    <div class="card status">
+        <div class="card-body">
+            <h5 class="card-title">Uno Score Counter</h5>
+            <h6 class="card-subtitle">
+                <span v-if="isGameOver">Congrats! We have a winner! You can rematch or start a new game.</span>
+                <span v-else>Players need to reach {{needToWin}} points to win. Click the "Plus" button to add the points to score.</span>
+            </h6>
+            <div class="mt-3">
+                <table class="table">
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Score</th>
+                        <th>Up to win</th>
+                        <th v-if="!isGameOver">Add</th>
+                    </tr>
+                    <tr v-for="player in players" :class="winnerClass(player.id)">
+                        <td><h5><span :class="getPlayerBadgeClass(player.id)">{{player.name}}</span></h5></td>
+                        <td>{{score[player.id].score}}</td>
+                        <td>{{upToWin(player.id)}}</td>
+                        <td class="text-right" v-if="!isGameOver">
+                            <router-link :to="{ path: '/add/'+player.id }" class="btn btn-light">
+                                <i class="fas fa-plus"></i>
+                            </router-link>
+                        </td>
+                    </tr>
+                </table>
+                <div v-if="isGameOver" class="row">
+                    <div class="col">
+                        <button class="btn btn-primary w-100" @click="rematch()">Rematch</button>
+                    </div>
+                    <div class="col">
+                        <button class="btn btn-secondary w-100" @click="newGame()">New game</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </script>
 <script type="text/x-template" id="addTpl">
-    <div>
-        <p>
-            Player name: {{playerName}}<br>
-            Points to win: {{pointsToWin}}<br>
-            Current points: {{summ}}
-        </p>
-        <button @click="stack.push(1)">+1</button>
-        <button @click="stack.push(2)">+2</button>
-        <button @click="stack.push(3)">+3</button>
-        <button @click="stack.push(4)">+4</button>
-        <button @click="stack.push(5)">+5</button>
-        <button @click="stack.push(6)">+6</button>
-        <button @click="stack.push(7)">+7</button>
-        <button @click="stack.push(8)">+8</button>
-        <button @click="stack.push(9)">+9</button>
-        <button @click="stack.push(20)">+20</button>
-        <button @click="stack.push(50)">+50</button>
-        <p>
-            <button @click="onCancel()">Cancel</button>
-            <button @click="undo()" v-if="summ > 0">Undo</button>
-            <button @click="stack = []" v-if="summ > 0">Reset all</button>
-            <button @click="onSubmit()" v-if="summ > 0">Submit</button>
-        </p>
+    <div class="card add">
+        <div class="card-body">
+            <h5 class="card-title">Uno Score Counter</h5>
+            <h6 class="card-subtitle">Click buttons that match cards value to increase the score.</h6>
+            <div class="row mt-3">
+                <div class="col text-center">
+                    <h3><span :class="getPlayerBadgeClass()">{{playerName}}</span></h5>
+                </div>
+            </div>    
+            <div class="row">
+                <div class="col text-center">
+                    <h3>{{summ}} ({{pointsToWin}} up to win)</h3>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(1)">+1</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(2)">+2</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(3)">+3</button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(4)">+4</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(5)">+5</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(6)">+6</button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(7)">+7</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(8)">+8</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-primary btn-lg w-100" @click="stack.push(9)">+9</button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <button class="btn btn-outline-dark btn-lg w-100" @click="stack.push(20)">+20</button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-outline-dark btn-lg w-100" @click="stack.push(50)">+50</button>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" @click="onCancel()">Cancel</button>
+                </div>
+                <div class="col" v-if="summ > 0">
+                    <button class="btn btn-secondary w-100" @click="undo()">Undo</button>
+                </div>
+                <div class="col" v-if="summ > 0">
+                    <button class="btn btn-secondary w-100" @click="stack = []">Reset all</button>
+                </div>
+                <div class="col" v-if="summ > 0">
+                    <button class="btn btn-primary w-100" @click="onSubmit()" >Add</button>
+                </div>
+            </div>
+        </div>
     </div>
 </script>
 <script>
     Vue.use(Vuex);
+    const playerColors = [
+        'swatch-blue',
+        'swatch-pink',
+        'swatch-yellow',
+        'swatch-indigo',
+        'swatch-red',
+        'swatch-green',
+        'swatch-cyan',
+        'swatch-purple',
+        'swatch-orange',
+        'swatch-teal'
+    ];
+    const defaultPointsToWin = 200;
     const store = new Vuex.Store({
         state: {
             players: [],
-            needPointsToWin: 0
+            needPointsToWin: defaultPointsToWin
         },
         mutations: {
             addPointsTo(state, payload) {
@@ -108,6 +272,16 @@
             },
             setPointsToWin(state, payload) {
                 state.needPointsToWin = payload;
+            },
+            rematch(state) {
+                for (i in state.players) {
+                    
+                    state.players[i].rounds = [];
+                } 
+            },
+            newGame(state) {
+                state.players = [];
+                needPointsToWin = defaultPointsToWin;
             }
         },
         getters: {
@@ -165,8 +339,13 @@
                     },
                     methods: {
                         addPlayer(name) {
-                            this.$store.commit('addPlayer', { name });
-                            this.playerName = '';
+                            if (name) {
+                                this.$store.commit('addPlayer', { name });
+                                this.playerName = '';
+                            }
+                        },
+                        getPlayerBadgeClass(playerId) {
+                            return 'badge ' + playerColors[playerId];
                         }
                     },
                     beforeRouteLeave(to, from, next) {
@@ -181,7 +360,20 @@
                     template: '#statusTpl',
                     methods: {
                         winnerClass(playerId) {
-                            return this.isGameOver == playerId ? 'winner' : '';
+                            return this.isGameOver == playerId ? 'table-success' : '';
+                        },
+                        getPlayerBadgeClass(playerId) {
+                            return 'badge ' + playerColors[playerId];
+                        },
+                        upToWin(playerId) {
+                            return this.$store.state.needPointsToWin - this.$store.getters.score[playerId].score;
+                        },
+                        rematch() {
+                            this.$store.commit('rematch');
+                        },
+                        newGame() {
+                            this.$store.commit('newGame');
+                            this.$router.replace('/init');
                         }
                     },
                     computed: {
@@ -193,6 +385,9 @@
                         },
                         isGameOver() {
                             return this.$store.getters.isGameOver;
+                        },
+                        needToWin() {
+                            return this.$store.state.needPointsToWin;
                         }
                     }
                 }
@@ -236,6 +431,9 @@
                         },
                         undo() {
                             this.stack.pop();
+                        },
+                        getPlayerBadgeClass() {
+                            return 'badge ' + playerColors[this.id];
                         }
                     },
                     template: '#addTpl'
