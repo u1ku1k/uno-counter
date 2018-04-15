@@ -15,6 +15,9 @@
         .flex-grow {
             flex: 1 0 auto;
         }
+        tr.winner {
+            background-color: #ff00ff;
+        }
     </style>
 </head>
 <body>
@@ -39,18 +42,43 @@
             <tr>
                 <th>Player Name</th>
                 <th>Total</th>
+                <th>Add Points</th>
                 <th>Rounds</th>
             </tr>
-            <tr v-for="player in players">
+            <tr v-for="player in players" :class="winnerClass(player.id)">
                 <td>{{player.name}}</td>
                 <td>{{score[player.id].score}}</td>
+                <td><router-link :to="{ path: '/add/'+player.id }" v-if="!isGameOver" >Add points</router-link></td>
                 <td v-for="round in player.rounds">+{{round}}</td>
             </tr>
         </table>
     </div>
 </script>
 <script type="text/x-template" id="addTpl">
-    
+    <div>
+        <p>
+            Player name: {{playerName}}<br>
+            Points to win: {{pointsToWin}}<br>
+            Current points: {{summ}}
+        </p>
+        <button @click="stack.push(1)">+1</button>
+        <button @click="stack.push(2)">+2</button>
+        <button @click="stack.push(3)">+3</button>
+        <button @click="stack.push(4)">+4</button>
+        <button @click="stack.push(5)">+5</button>
+        <button @click="stack.push(6)">+6</button>
+        <button @click="stack.push(7)">+7</button>
+        <button @click="stack.push(8)">+8</button>
+        <button @click="stack.push(9)">+9</button>
+        <button @click="stack.push(20)">+20</button>
+        <button @click="stack.push(50)">+50</button>
+        <p>
+            <button @click="onCancel()">Cancel</button>
+            <button @click="undo()" v-if="summ > 0">Undo</button>
+            <button @click="stack = []" v-if="summ > 0">Reset all</button>
+            <button @click="onSubmit()" v-if="summ > 0">Submit</button>
+        </p>
+    </div>
 </script>
 <script>
     Vue.use(Vuex);
@@ -65,9 +93,9 @@
                 let points = payload.points;
                 for (i in state.players) {
                     if (state.players[i].id == playerId) {
-                        state.players[i].push(points)
+                        state.players[i].rounds.push(points)
                     } else {
-                        state.players[i].push(0)
+                        state.players[i].rounds.push(0)
                     }
                 }
             },
@@ -87,7 +115,7 @@
                 let score = getters.score;
                 let players = state.players;
                 for (i in players) {
-                    if (score.find(el => { return el.id == players[i].id; }).score >= state.needPointsToWin) {
+                    if (score.find(el => { return el.playerId == players[i].id; }).score >= state.needPointsToWin) {
                         return i;
                     }
                 }
@@ -151,20 +179,65 @@
                 component: {
                     store,
                     template: '#statusTpl',
+                    methods: {
+                        winnerClass(playerId) {
+                            return this.isGameOver == playerId ? 'winner' : '';
+                        }
+                    },
                     computed: {
                         players() {
                             return this.$store.state.players;
                         },
                         score() {
                             return this.$store.getters.score;
+                        },
+                        isGameOver() {
+                            return this.$store.getters.isGameOver;
                         }
                     }
                 }
             }, { 
-                path: '/add',
+                path: '/add/:id',
                 name: 'add',
+                props: true,
                 component: {
+                    data() {
+                        return {
+                            stack: []
+                        };
+                    },
+                    props: ['id'],
                     store,
+                    computed: {
+                        playerName() {
+                            return this.$store.state.players[this.id].name;
+                        },
+                        pointsToWin() {
+                            return this.$store.state.needPointsToWin - this.$store.getters.score[this.id].score;
+                        },
+                        summ() {
+                            let result = 0;
+                            for (i in this.stack) {
+                                result += this.stack[i];
+                            }
+                            return result;
+                        }
+                    },
+                    methods: {
+                        onCancel() {
+                            this.$router.push('/status');
+                        },
+                        onSubmit() {
+                            this.$store.commit('addPointsTo', {
+                                playerId: this.id,
+                                points: this.summ
+                            });
+                            this.$router.push('/status');
+                        },
+                        undo() {
+                            this.stack.pop();
+                        }
+                    },
                     template: '#addTpl'
                 }
             }
@@ -176,7 +249,7 @@
         data: {},
         computed: {},
         mounted() {
-            this.$router.push('init');
+            this.$router.push('/init');
         }
     });
 </script>
