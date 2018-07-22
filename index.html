@@ -12,6 +12,13 @@
     <script src="https://unpkg.com/vuex"></script>
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="mask-icon" href="safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
     <style>
         .flex-grow {
             flex: 1 0 auto;
@@ -78,9 +85,25 @@
         .add .btn.disabled, .btn:disabled {
             opacity: 0.40;
         }
+        .background {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+        }
+        .background .inner {
+            background-image: url(UNO_Logo.svg);
+            background-size: 20%;
+            opacity: 0.3;
+            height: 100%;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
+    <div class="background">
+        <div class="inner"></div>
+    </div>
     <div id="vue" class="h-100">
         <div class="container-fluid h-100 d-flex align-items-center justify-content-center flex-column">
             <router-view></router-view>
